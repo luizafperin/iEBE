@@ -99,11 +99,16 @@ queue {2:d}""".format(para_dict_["n_threads"], para_dict_["memory_per_job"],
 
 
 def write_job_running_script_urqmd(para_dict_):
-    # sif is the last positional arg: $6 (no bayes) or $7 (bayes)
+    """Generate the HTCondor/apptainer run script."""
+
+    # positional arg for sif image
     sif_pos = 7 if para_dict_["bayesFlag"] else 6
 
-    script = open("run_singularity.sh", "w")
-    script.write("""#!/usr/bin/env bash
+    with open("run_singularity.sh", "w") as script:
+
+        script.write(r"""#!/usr/bin/env bash
+        
+set -euo pipefail
 
 parafile=$1
 processId=$2
@@ -111,21 +116,50 @@ nHydroEvents=$3
 nthreads=$4
 seed=$5
 
+""")
+
+        if para_dict_["bayesFlag"]:
+            script.write("bayesFile=$6\n\n")
+
+        script.write(f"SINGULARITY_IMAGE=${{{sif_pos}}}\n\n")
+
+        script.write(r'''
 export PYTHONIOENCODING=utf-8
+
 export PATH="${PATH}:/usr/lib64/openmpi/bin:/usr/local/gsl/2.5/x86_64/bin"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib:/usr/local/gsl/2.5/x86_64/lib64"
 
-jobdir=$(pwd)
-export JOBDIR="${jobdir}"
-export TMPDIR="${jobdir}/tmp"
-export XDG_DATA_HOME="${jobdir}/.local/share"
-export XDG_CACHE_HOME="${jobdir}/.cache"
-export TRENTO_CACHE="${jobdir}/.trento"
+# ------------------------------------------------------------------
+# HTCondor scratch directory
+# ------------------------------------------------------------------
+SCRATCH_DIR="$(pwd)"
+JOBDIR="${SCRATCH_DIR}"
 
-export SINGULARITYENV_TMPDIR="${TMPDIR}"
-export SINGULARITYENV_XDG_DATA_HOME="${XDG_DATA_HOME}"
-export SINGULARITYENV_XDG_CACHE_HOME="${XDG_CACHE_HOME}"
-export SINGULARITYENV_TRENTO_CACHE="${TRENTO_CACHE}"
+echo "=========================================="
+echo "Scratch dir : ${SCRATCH_DIR}"
+echo "Image arg   : ${SINGULARITY_IMAGE}"
+echo "Hostname    : $(hostname)"
+echo "Start time  : $(date)"
+echo "=========================================="
+
+# HTCondor transfers files using basename only
+SIF="${SCRATCH_DIR}/$(basename "${SINGULARITY_IMAGE}")"
+
+echo "Resolved SIF path: ${SIF}"
+
+if [ ! -f "${SIF}" ]; then
+    echo "ERROR: SIF file not found!"
+    ls -lh
+    exit 1
+fi
+
+# ------------------------------------------------------------------
+# Local writable dirs
+# ------------------------------------------------------------------
+export TMPDIR="${JOBDIR}/tmp"
+export XDG_DATA_HOME="${JOBDIR}/.local/share"
+export XDG_CACHE_HOME="${JOBDIR}/.cache"
+export TRENTO_CACHE="${JOBDIR}/.trento"
 
 mkdir -p "${TMPDIR}"
 mkdir -p "${XDG_DATA_HOME}"
@@ -133,125 +167,113 @@ mkdir -p "${XDG_CACHE_HOME}"
 mkdir -p "${TRENTO_CACHE}"
 mkdir -p "${XDG_DATA_HOME}/trento"
 
-printf "Start time: `/bin/date`\\n"
-printf "Job is running on node: `/bin/hostname`\\n"
-printf "system kernel: `uname -r`\\n"
-printf "Job running as user: `/usr/bin/id`\\n"
+# ------------------------------------------------------------------
+# Apptainer environment forwarding
+# ------------------------------------------------------------------
+export APPTAINERENV_TMPDIR="${TMPDIR}"
+export APPTAINERENV_XDG_DATA_HOME="${XDG_DATA_HOME}"
+export APPTAINERENV_XDG_CACHE_HOME="${XDG_CACHE_HOME}"
+export APPTAINERENV_TRENTO_CACHE="${TRENTO_CACHE}"
 
-""")
-    if para_dict_["bayesFlag"]:
-        script.write("bayesFile=$6\n")
+# ------------------------------------------------------------------
+# Generate event folders
+# ------------------------------------------------------------------
+echo "Running generate_jobs.py ..."
+''')
 
-    script.write("SINGULARITY_IMAGE=${{{}}}\n\n".format(sif_pos))
+        if para_dict_["bayesFlag"]:
+            script.write(r'''
+apptainer exec \
+    --bind "${SCRATCH_DIR}:${SCRATCH_DIR}" \
+    "${SIF}" \
+    python3 /opt/iEBE-MUSIC/generate_jobs.py \
+        -w playground \
+        -c OSG \
+        -par "${parafile}" \
+        -id "${processId}" \
+        -n_th "${nthreads}" \
+        -n_urqmd "${nthreads}" \
+        -n_hydro "${nHydroEvents}" \
+        -seed "${seed}" \
+        -b "${bayesFile}" \
+        --nocopy
+''')
+        else:
+            script.write(r'''
+apptainer exec \
+    --bind "${SCRATCH_DIR}:${SCRATCH_DIR}" \
+    "${SIF}" \
+    python3 /opt/iEBE-MUSIC/generate_jobs.py \
+        -w playground \
+        -c OSG \
+        -par "${parafile}" \
+        -id "${processId}" \
+        -n_th "${nthreads}" \
+        -n_urqmd "${nthreads}" \
+        -n_hydro "${nHydroEvents}" \
+        -seed "${seed}" \
+        --nocopy
+''')
 
-    # HTCondor transfers the .sif as basename into the scratch dir.
-    # Capture scratch dir and build absolute SIF path before any cd.
-    script.write('SCRATCH_DIR="${PWD}"\n')
-    script.write('SIF="${SCRATCH_DIR}/$(basename ${SINGULARITY_IMAGE})"\n\n')
+        script.write(r'''
 
-    if para_dict_["bayesFlag"]:
-        script.write(
-            'singularity exec --bind "${SCRATCH_DIR}:${SCRATCH_DIR}" "${SIF}" '
-            "/opt/iEBE-MUSIC/generate_jobs.py -w playground -c OSG "
-            "-par ${parafile} -id ${processId} -n_th ${nthreads} "
-            "-n_urqmd ${nthreads} -n_hydro ${nHydroEvents} -seed ${seed} "
-            "-b ${bayesFile} --nocopy --continueFlag\n")
-    else:
-        script.write(
-            'singularity exec --bind "${SCRATCH_DIR}:${SCRATCH_DIR}" "${SIF}" '
-            "/opt/iEBE-MUSIC/generate_jobs.py -w playground -c OSG "
-            "-par ${parafile} -id ${processId} -n_th ${nthreads} "
-            "-n_urqmd ${nthreads} -n_hydro ${nHydroEvents} -seed ${seed} "
-            "--nocopy --continueFlag\n")
+gen_status=$?
 
-    script.write("""
-cd playground/event_0
-mv EVENT_RESULTS_${processId}.tar.gz playground/event_0
-singularity exec --bind "${SCRATCH_DIR}:${SCRATCH_DIR}" "${SIF}" bash submit_job.script
-status=$?
-if [ $status -ne 0 ]; then
-    exit $status
+echo "generate_jobs.py exit code: ${gen_status}"
+
+if [ ${gen_status} -ne 0 ]; then
+    echo "ERROR: generate_jobs.py failed"
+    exit ${gen_status}
 fi
-""")
-    script.close()
 
+echo "Contents after generation:"
+find playground -maxdepth 2 | head -50
 
-# ── SMASH mode (TRENTo + isobar seeds) ───────────────────────────────────────
+# ------------------------------------------------------------------
+# Verify event folder exists
+# ------------------------------------------------------------------
+if [ ! -d "playground/event_0" ]; then
+    echo "ERROR: playground/event_0 not found"
+    exit 1
+fi
 
-def write_submission_script_smash(para_dict_):
-    jobName = "iEBEMUSIC_{}".format(para_dict_["job_name"])
-    random_seed = random.SystemRandom().randint(0, 10000000)
-    seed_file = para_dict_.get("seed_file", "")
-    sif = para_dict_["singularity_image_path"]
-    script = open(FILENAME, "w")
+cd playground/event_0
 
-    # Argument order: param_file $(Process) n_events n_threads seed
-    #                 [bayes_file] [seed_file] singularity_image
-    if para_dict_["bayesFlag"]:
-        args_str = "{0} $(Process) {1} {2} {3} {4}".format(
-            para_dict_["param_file"], para_dict_["n_events_per_job"],
-            para_dict_["n_threads"], random_seed, para_dict_["bayes_file"])
-    else:
-        args_str = "{0} $(Process) {1} {2} {3}".format(
-            para_dict_["param_file"], para_dict_["n_events_per_job"],
-            para_dict_["n_threads"], random_seed)
-    if seed_file:
-        args_str += " {}".format(seed_file)
-    # singularity image is always last
-    args_str += " {}".format(sif)
+echo "Now inside:"
+pwd
+ls -lh
 
-    script.write("""universe = vanilla
-executable = run_singularity.sh
-arguments = {}
-""".format(args_str))
+# ------------------------------------------------------------------
+# Verify submit script exists
+# ------------------------------------------------------------------
+if [ ! -f "submit_job.script" ]; then
+    echo "ERROR: submit_job.script missing"
+    find . -maxdepth 2
+    exit 1
+fi
 
-    script.write("""
-JobBatchName = {0}
+chmod +x submit_job.script
 
-should_transfer_files = YES
-WhenToTransferOutput = ON_EXIT
-""".format(jobName))
+echo "Running submit_job.script ..."
 
-    # The .sif is included so HTCondor copies it to the worker scratch dir.
-    # In run_singularity.sh we reference it via $(basename ...).
-    input_files = [para_dict_['param_file']]
-    if para_dict_['bayesFlag']:
-        input_files.append(para_dict_['bayes_file'])
-    if seed_file:
-        input_files.append(seed_file)
-    input_files.append(sif)
-    script.write("\ntransfer_input_files = {}\n".format(", ".join(input_files)))
+apptainer exec \
+    --bind "${SCRATCH_DIR}:${SCRATCH_DIR}" \
+    "${SIF}" \
+    bash submit_job.script
 
-    # ── TEMPORARY DEBUG ──────────────────────────────────────────────────────────
-    # TRENTo is copied into EVENT_RESULTS in run_singularity.sh so it travels
-    # with each job's unique result directory.
-    # To revert: remove the cp step from run_singularity.sh (marked there too).
-    script.write("""
-transfer_output_files = playground/event_0/EVENT_RESULTS_$(Process)
+status=$?
 
-error = log/job.$(Cluster).$(Process).error
-output = log/job.$(Cluster).$(Process).output
-log = log/job.$(Cluster).$(Process).log
+echo "submit_job.script exit code: ${status}"
 
-max_idle = 1000
+if [ ${status} -ne 0 ]; then
+    echo "ERROR: submit_job.script failed"
+    exit ${status}
+fi
 
-# remove the failed jobs
-periodic_remove = (ExitCode == 73)
+echo "Job finished successfully at $(date)"
+''')
 
-periodic_release = ((HoldReasonCode == 13 || HoldReasonCode == 26) && (time() - EnteredCurrentStatus) > 1200 )
-
-checkpoint_exit_code = 85
-
-# Send the job to Held state on failure.
-on_exit_hold = (ExitBySignal == True) || (ExitCode != 0 && ExitCode != 73)
-
-request_cpus = {0:d}
-request_memory = {1:d} GB
-request_disk = 2 GB
-
-queue {2:d}""".format(para_dict_["n_threads"], para_dict_["memory_per_job"],
-                      para_dict_["n_jobs"]))
-    script.close()
+    subprocess.call("chmod +x run_singularity.sh", shell=True)
 
 
 def write_job_running_script_smash(para_dict_):

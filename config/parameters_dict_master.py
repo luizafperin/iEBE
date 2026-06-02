@@ -432,6 +432,10 @@ music_dict = {
     # 14: neos_BQS lattice EoS at finite mu_B
     # 17: BEST lattice EoS at finite mu_B
     # transport coefficients
+    'EOS_gp_l': 400,  # the l parameter for the Gaussian process emulator of the EOS
+    'EOS_gp_sigma': 15,  # the sigma parameter for the Gaussian process emulator of the EOS
+    'EOS_gp_type': 'hrg',  # the type of the Gaussian process emulator of the EOS
+    'EOS_gp_sample': 's0',  # the sample for the Gaussian process emulator of the EOS
     'quest_revert_strength': 10.0,  # the strength of the viscous regulation
     'FlagResumTransportCoeff': 0,   # switch to use resummed transport coeff.
     'FlagResetCausality': 0,

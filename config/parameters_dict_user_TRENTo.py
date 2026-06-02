@@ -144,7 +144,10 @@ music_dict = {
     'Delta_Tau': 0.005,  # time step to use in the evolution [fm/c]
     'boost_invariant': 1,  # whether the simulation is boost-invariant
     'EOS_to_use': 24,  # type of the equation of state
-    # 9: hotQCD EOS with UrQMD
+    'EOS_gp_l': 400,  # the l parameter for the Gaussian process emulator of the EOS
+    'EOS_gp_sigma': 15,  # the sigma parameter for the Gaussian process emulator of the EOS
+    'EOS_gp_type': 'w',  # the type of the Gaussian process emulator of the EOS
+    'EOS_gp_sample': 's0',  # the sample for the Gaussian process emulator of the EOS
     # transport coefficients
     'Eta_grid_size': 1.0,
     'Grid_size_in_eta': 1.0,
@@ -182,7 +185,7 @@ iss_dict = {
     'number_of_particles_needed': 100000,  # number of hadrons to sample
     'local_charge_conservation': 0,  # flag to impose local charge conservation
     'global_momentum_conservation': 0,  # flag to impose GMC
-    'number_of_repeated_sampling': 500,
+    'number_of_repeated_sampling': 300,
     'use_OSCAR_format': 1,  # output results in OSCAR format
     'use_OSCAR2013': 0,  # output results in OSCAR2013 format
     'output_samples_into_files':
@@ -235,7 +238,7 @@ hadronic_afterburner_toolkit_dict = {
     'compute_corr_rap_dep':
         0,  # flag to compute the rapidity dependent multi-particle correlation
     'resonance_weak_feed_down_flag': 0,  # include weak feed down contribution
-    'analyze_HBT': 1,
+    'analyze_HBT': 0,
     'rapidityPTDistributionFlag': 1,  # output Qn vectors in (eta, pT)
     'pidwithRapidityPTDistribution': 1,
 }

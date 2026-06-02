@@ -134,3 +134,5 @@ hrg_s1_run1/
 hrg_*/
 hrg_s0/
 *.swp
+w_s0/ 
+test0/

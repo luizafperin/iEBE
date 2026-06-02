@@ -3,7 +3,7 @@
 base_seed=12345
 base_dir="/home/luizaperin/iEBE-MUSIC"
 
-for n in {0..3}
+for n in {1..3}
 do
     workdir="hrg_s0_run${n}"
     full_path="${base_dir}/${workdir}"
