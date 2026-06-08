@@ -1034,7 +1034,7 @@ def generate_event_folders(initial_condition_database, initial_condition_type,
                 path.join(sub_event_folder,
                           'hadronic_afterburner_toolkit/parameters.dat'))
             for link_i in ['hadronic_afterburner_tools.e', 'EOS']:
-                subprocess.call("ln -s {0:s} {1:s}".format(
+                subprocess.call("ln -sf {0:s} {1:s}".format(
                     path.abspath(
                         path.join(
                             code_path,
@@ -1050,7 +1050,7 @@ def generate_event_folders(initial_condition_database, initial_condition_type,
         path.join(param_folder, 'hadronic_afterburner_toolkit/parameters.dat'),
         path.join(event_folder, 'hadronic_afterburner_toolkit/parameters.dat'))
     for link_i in ['hadronic_afterburner_tools.e', 'EOS']:
-        subprocess.call("ln -s {0:s} {1:s}".format(
+        subprocess.call("ln -sf {0:s} {1:s}".format(
             path.abspath(
                 path.join(
                     code_path,
