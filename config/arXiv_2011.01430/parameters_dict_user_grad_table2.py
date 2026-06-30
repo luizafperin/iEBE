@@ -109,7 +109,7 @@ trento_dict = {
     'b-max': 0,             # maximum b
     'grid-max': 10,          #####
     'grid-step': 0.2,        #####
-    'nucleon-min-dist': 2.97,
+    'nucleon-min-dist': 1.44, #(2.97)^1/3
 }
 
 free_streaming_dict = {
@@ -124,16 +124,17 @@ music_dict = {
     #   -- 131: 3dMCGlauber with zero nucleus thickness
     's_factor': 1.000,  # normalization factor read in initial data file
     'Initial_time_tau_0':
-        0.2,  # starting time of the hydrodynamic evolution (fm/c)
+        1.46,  # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.005,  # time step to use in the evolution [fm/c]
     'boost_invariant': 1,  # whether the simulation is boost-invariant
     'EOS_to_use': 24,  # type of the equation of state
     'EOS_gp_l': 400,  # the l parameter for the Gaussian process emulator of the EOS
     'EOS_gp_sigma': 15,  # the sigma parameter for the Gaussian process emulator of the EOS
-    'EOS_gp_type': 'hrg',  # the type of the Gaussian process emulator of the EOS
+    'EOS_gp_type': 'w',  # the type of the Gaussian process emulator of the EOS
     'EOS_gp_sample': 's0',  # the sample for the Gaussian process emulator of the EOS
     'T_sw': 136,
-    # transport coefficients
+    'gp_type': 'unconstrained',
+    # transport coefficients'
     'Eta_grid_size': 1.0,
     'Grid_size_in_eta': 1.0,
     'X_grid_size_in_fm': 18.0,
