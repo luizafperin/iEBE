@@ -132,6 +132,7 @@ music_dict = {
     'EOS_gp_sigma': 15,  # the sigma parameter for the Gaussian process emulator of the EOS
     'EOS_gp_type': 'w',  # the type of the Gaussian process emulator of the EOS
     'EOS_gp_sample': 's0',  # the sample for the Gaussian process emulator of the EOS
+    'gp_type': 'unconstrained',
     'T_sw': 136,
     'gp_type': 'unconstrained',
     # transport coefficients'

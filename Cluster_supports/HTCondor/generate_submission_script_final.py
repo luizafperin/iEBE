@@ -31,107 +31,82 @@ def detect_afterburner(param_file):
     return "UrQMD"
 
 
-# ─────────────────────────────────────────────────────────────────────
+# --------------------------------------------------------------
 # URQMD
-# ─────────────────────────────────────────────────────────────────────
+# --------------------------------------------------------------
 
 def write_submission_script_urqmd(para_dict_):
 
     jobName = "iEBEMUSIC_{}".format(para_dict_["job_name"])
 
     random_seed = para_dict_["random_seed"]
-    seed_file = para_dict_["seed_file"]
+    seed_file = para_dict_.get("seed_file", "")
+    has_seed = seed_file != ""
 
     sif = para_dict_["singularity_image_path"]
 
     script = open(FILENAME, "w")
 
-    # --------------------------------------------------------------
-    # ARGUMENT ORDER
-    #
-    # no bayes:
-    #   1 parafile
-    #   2 processId
-    #   3 nHydroEvents
-    #   4 nthreads
-    #   5 randomSeed
-    #   6 seed_file
-    #   7 sif
-    #
-    # with bayes:
-    #   1 parafile
-    #   2 processId
-    #   3 nHydroEvents
-    #   4 nthreads
-    #   5 randomSeed
-    #   6 bayesFile
-    #   7 seed_file
-    #   8 sif
-    # --------------------------------------------------------------
+    # ----------------------------------------------------------
+    # Build arguments dynamically
+    # ----------------------------------------------------------
 
     if para_dict_["bayesFlag"]:
 
-        script.write("""universe = vanilla
-executable = run_singularity.sh
-arguments = {0} $(Process) {1} {2} {3} {4} {5} {6}
-""".format(
+        args = [
             para_dict_["param_file"],
-            para_dict_["n_hydro_per_job"],
-            para_dict_["n_threads"],
-            random_seed,
-            para_dict_["bayes_file"],
-            seed_file,
-            sif
-        ))
+            "$(Process)",
+            str(para_dict_["n_hydro_per_job"]),
+            str(para_dict_["n_threads"]),
+            str(random_seed),
+            para_dict_["bayes_file"]
+        ]
 
     else:
 
-        script.write("""universe = vanilla
-executable = run_singularity.sh
-arguments = {0} $(Process) {1} {2} {3} {4} {5}
-""".format(
+        args = [
             para_dict_["param_file"],
-            para_dict_["n_hydro_per_job"],
-            para_dict_["n_threads"],
-            random_seed,
-            seed_file,
-            sif
-        ))
+            "$(Process)",
+            str(para_dict_["n_hydro_per_job"]),
+            str(para_dict_["n_threads"]),
+            str(random_seed)
+        ]
 
-    script.write("""
-JobBatchName = {0}
+        args.append(sif)
+
+    script.write(f"""universe = vanilla
+executable = run_singularity.sh
+arguments = {" ".join(args)}
+
+JobBatchName = {jobName}
 
 should_transfer_files = YES
 WhenToTransferOutput = ON_EXIT
-""".format(jobName))
+requirements = (Machine != "gpusphydro")
+""")
 
-    # --------------------------------------------------------------
-    # transfer files
-    # --------------------------------------------------------------
+    # ----------------------------------------------------------
+    # Transfer input files dynamically
+    # ----------------------------------------------------------
 
-    if para_dict_['bayesFlag']:
+    inputs = [para_dict_["param_file"]]
 
-        script.write(
-            "\ntransfer_input_files = {}, {}, {}, {}\n".format(
-                para_dict_['param_file'],
-                para_dict_['bayes_file'],
-                seed_file,
-                sif
-            )
-        )
+    if para_dict_["bayesFlag"]:
+        inputs.append(para_dict_["bayes_file"])
 
-    else:
+    inputs.append("shared_seeds")
 
-        script.write(
-            "\ntransfer_input_files = {}, {}, {}\n".format(
-                para_dict_['param_file'],
-                seed_file,
-                sif
-            )
-        )
+    inputs.append(sif)
 
     script.write(
-        "transfer_checkpoint_files = playground/event_0/EVENT_RESULTS_$(Process).tar.gz\n"
+        "\ntransfer_input_files = {}\n".format(
+            ", ".join(inputs)
+        )
+    )
+
+    script.write(
+        "transfer_checkpoint_files = "
+        "playground/event_0/EVENT_RESULTS_$(Process).tar.gz\n"
     )
 
     script.write("""
@@ -149,15 +124,17 @@ max_idle = 1000
 
 periodic_remove = (ExitCode == 73)
 
-periodic_release = ((HoldReasonCode == 13 || HoldReasonCode == 26) && (time() - EnteredCurrentStatus) > 1200 )
+periodic_release = ((HoldReasonCode == 13 || HoldReasonCode == 26) && \
+(time() - EnteredCurrentStatus) > 1200 )
 
 checkpoint_exit_code = 85
 
-on_exit_hold = (ExitBySignal == True) || (ExitCode != 0 && ExitCode != 73)
+on_exit_hold = (ExitBySignal == True) || \
+(ExitCode != 0 && ExitCode != 73)
 
 request_cpus = {0:d}
 request_memory = {1:d} GB
-request_disk = 2 GB
+request_disk = 4 GB
 
 queue {2:d}
 """.format(
@@ -175,7 +152,7 @@ queue {2:d}
 
 def write_job_running_script_urqmd(para_dict_):
 
-    sif_pos = 8 if para_dict_["bayesFlag"] else 7
+    has_seed = para_dict_.get("seed_file", "") != ""
 
     with open("run_singularity.sh", "w") as script:
 
@@ -191,22 +168,35 @@ randomSeed=$5
 
 """)
 
-        if para_dict_["bayesFlag"]:
+        # ----------------------------------------------------------
+        # Argument parsing
+        # ----------------------------------------------------------
 
+        if para_dict_["bayesFlag"]:
             script.write(r"""
 bayesFile=$6
-seed_file=$7
+
+if [ $# -eq 8 ]; then
+    seed_file=$7
+    SINGULARITY_IMAGE=$8
+else
+    seed_file=""
+    SINGULARITY_IMAGE=$7
+fi
 
 """)
 
         else:
-
             script.write(r"""
-seed_file=$6
+if [ $# -eq 7 ]; then
+    seed_file=$6
+    SINGULARITY_IMAGE=$7
+else
+    seed_file=""
+    SINGULARITY_IMAGE=$6
+fi
 
 """)
-
-        script.write(f"SINGULARITY_IMAGE=${{{sif_pos}}}\n\n")
 
         script.write(r'''
 export PYTHONIOENCODING=utf-8
@@ -224,7 +214,9 @@ echo "Hostname   : $(hostname)"
 echo "Scratch    : ${SCRATCH_DIR}"
 echo "======================================="
 
-# HTCondor transfers basename only
+echo "Arguments received: $#"
+echo "$@"
+
 SIF="${SCRATCH_DIR}/$(basename "${SINGULARITY_IMAGE}")"
 
 echo "Resolved SIF: ${SIF}"
@@ -234,6 +226,7 @@ if [ ! -f "${SIF}" ]; then
     ls -lh
     exit 1
 fi
+
 
 # --------------------------------------------------------------
 # Writable dirs
@@ -249,6 +242,7 @@ mkdir -p "${XDG_DATA_HOME}"
 mkdir -p "${XDG_CACHE_HOME}"
 mkdir -p "${TRENTO_CACHE}"
 mkdir -p "${XDG_DATA_HOME}/trento"
+
 
 # --------------------------------------------------------------
 # Forward env into container
@@ -266,6 +260,11 @@ echo "Running generate_jobs.py ..."
         # generate_jobs.py
         # ----------------------------------------------------------
 
+        seed_argument = (
+            '        --isobar_seed_file "${seed_file}" \\\n'
+            if has_seed else ""
+        )
+
         if para_dict_["bayesFlag"]:
 
             script.write(fr'''
@@ -281,15 +280,13 @@ apptainer exec \
         -n_th "${{nthreads}}" \
         -n_urqmd {para_dict_["n_urqmd_per_hydro"]} \
         -n_hydro {para_dict_["n_hydro_per_job"]} \
-        --isobar_seed_file "${{seed_file}}" \
-        -seed "${{randomSeed}}" \
+{seed_argument}        -seed "${{randomSeed}}" \
         -b "${{bayesFile}}" \
         {"--nocopy" if para_dict_["nocopy"] else ""} \
         {"--continueFlag" if para_dict_["continueFlag"] else ""}
 ''')
 
         else:
-
             script.write(fr'''
 apptainer exec \
     --bind "${{SCRATCH_DIR}}:${{SCRATCH_DIR}}" \
@@ -303,13 +300,12 @@ apptainer exec \
         -n_th "${{nthreads}}" \
         -n_urqmd {para_dict_["n_urqmd_per_hydro"]} \
         -n_hydro {para_dict_["n_hydro_per_job"]} \
-        --isobar_seed_file "${{seed_file}}" \
-        -seed "${{randomSeed}}" \
+{seed_argument}        -seed "${{randomSeed}}" \
         {"--nocopy" if para_dict_["nocopy"] else ""} \
         {"--continueFlag" if para_dict_["continueFlag"] else ""}
 ''')
 
-        script.write(r'''
+            script.write(r'''
 
 gen_status=$?
 
@@ -323,10 +319,6 @@ fi
 echo "Generated files:"
 find playground -maxdepth 2 | head -50
 
-# --------------------------------------------------------------
-# Verify event folder
-# --------------------------------------------------------------
-
 if [ ! -d "playground/event_0" ]; then
     echo "ERROR: playground/event_0 missing"
     exit 1
@@ -338,10 +330,6 @@ echo "Current dir:"
 pwd
 
 ls -lh
-
-# --------------------------------------------------------------
-# Verify submit script
-# --------------------------------------------------------------
 
 if [ ! -f "submit_job.script" ]; then
     echo "ERROR: submit_job.script missing"
