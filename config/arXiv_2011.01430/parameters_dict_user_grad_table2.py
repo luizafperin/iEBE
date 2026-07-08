@@ -130,11 +130,10 @@ music_dict = {
     'EOS_to_use': 24,  # type of the equation of state
     'EOS_gp_l': 400,  # the l parameter for the Gaussian process emulator of the EOS
     'EOS_gp_sigma': 15,  # the sigma parameter for the Gaussian process emulator of the EOS
-    'EOS_gp_type': 'w',  # the type of the Gaussian process emulator of the EOS
+    'EOS_gp_type': 'hrg',  # the type of the Gaussian process emulator of the EOS
     'EOS_gp_sample': 's0',  # the sample for the Gaussian process emulator of the EOS
-    'gp_type': 'unconstrained',
+    'gp_type': 'training',
     'T_sw': 136,
-    'gp_type': 'unconstrained',
     # transport coefficients'
     'Eta_grid_size': 1.0,
     'Grid_size_in_eta': 1.0,
