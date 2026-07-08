@@ -35,7 +35,7 @@ rm -fr kompost_code/.git
 # download MUSIC
 rm -fr MUSIC_code
 git clone --depth=3 https://github.com/luizafperin/MUSIC -b main MUSIC_code
-(cd MUSIC_code; git checkout 2798e9822e96d8c3ae98244b115268b1dfa75b61)
+#(cd MUSIC_code; git checkout 2798e9822e96d8c3ae98244b115268b1dfa75b61)
 rm -fr MUSIC_code/.git
 
 # download iSS particle sampler
