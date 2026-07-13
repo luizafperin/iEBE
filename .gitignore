@@ -129,3 +129,4 @@ combine_multiple_hdf5.py
 collect_events_singularity.sh
 test/
 nucleon-seeds.hdf
+hrg_t_s0/

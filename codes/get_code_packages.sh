@@ -64,25 +64,33 @@ rm -rf smash_code/.git
 # download and build Pythia8 (required to compile SMASH)
 PYTHIA_VERSION="pythia8315"
 PYTHIA_INSTALL_DIR="${HOME}/${PYTHIA_VERSION}"
+
 if [ ! -f "${PYTHIA_INSTALL_DIR}/bin/pythia8-config" ]; then
     echo "Building Pythia8 in ${PYTHIA_INSTALL_DIR} ..."
     (
+        set -e
+
         cd /tmp
-        wget --no-check-certificate \
-            https://pythia.org/download/pythia83/${PYTHIA_VERSION}.tgz
-        tar xzf ${PYTHIA_VERSION}.tgz
+        rm -rf ${PYTHIA_VERSION}
+
+        git clone \
+            --branch ${PYTHIA_VERSION} \
+            --single-branch \
+            https://gitlab.com/Pythia8/releases.git \
+            ${PYTHIA_VERSION}
+
         cd ${PYTHIA_VERSION}
+
         ./configure --prefix=${PYTHIA_INSTALL_DIR}
         make -j2
         make install
+
         cd /tmp
-        rm -rf ${PYTHIA_VERSION} ${PYTHIA_VERSION}.tgz
+        rm -rf ${PYTHIA_VERSION}
     )
 else
     echo "Pythia8 already installed at ${PYTHIA_INSTALL_DIR}, skipping."
 fi
-
-
 
 # download hadronic afterner
 rm -fr hadronic_afterburner_toolkit_code

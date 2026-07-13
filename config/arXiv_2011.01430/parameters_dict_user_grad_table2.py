@@ -179,7 +179,7 @@ iss_dict = {
     'store_samples_in_memory': 0,
     'sample_upto_desired_particle_number': 0,
     'number_of_particles_needed': 1000000,
-    'number_of_repeated_sampling': 500,
+    'number_of_repeated_sampling': 400,
 }
 
 hadronic_afterburner_toolkit_dict = {
