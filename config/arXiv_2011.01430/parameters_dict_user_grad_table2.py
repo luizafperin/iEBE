@@ -131,8 +131,8 @@ music_dict = {
     'EOS_gp_l': 400,  # the l parameter for the Gaussian process emulator of the EOS
     'EOS_gp_sigma': 15,  # the sigma parameter for the Gaussian process emulator of the EOS
     'EOS_gp_type': 'hrg',  # the type of the Gaussian process emulator of the EOS
-    'EOS_gp_sample': 's0',  # the sample for the Gaussian process emulator of the EOS
-    'gp_type': 'training',
+    'EOS_gp_sample': 's1',  # the sample for the Gaussian process emulator of the EOS
+    'gp_type': 'unconstrained',
     'T_sw': 136,
     # transport coefficients'
     'Eta_grid_size': 1.0,
@@ -179,7 +179,7 @@ iss_dict = {
     'store_samples_in_memory': 0,
     'sample_upto_desired_particle_number': 0,
     'number_of_particles_needed': 1000000,
-    'number_of_repeated_sampling': 400,
+    'number_of_repeated_sampling': 500,
 }
 
 hadronic_afterburner_toolkit_dict = {

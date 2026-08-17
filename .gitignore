@@ -130,3 +130,4 @@ collect_events_singularity.sh
 test/
 nucleon-seeds.hdf
 hrg_t_s0/
+hrg_s1/
