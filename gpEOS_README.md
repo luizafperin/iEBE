@@ -37,9 +37,10 @@ python3 generate_jobs.py -w test_job -par config/parameter_file.py
 ```
 
 The generated job will be located in:
-
+```python
 test_job/
 └── event_0/
+```
 
 Enter the event directory and submit the job:
 
@@ -50,20 +51,21 @@ bash submit_job.script
 
 ## Running on HTcondor
 First, copy the iEBE repository:
-'''git clone https://github.com/luizafperin/iEBE-MUSIC.git -b clean-final
-'''
+```python
+git clone https://github.com/luizafperin/iEBE-MUSIC.git -b clean-final
+```
 
 Then, to create the docker
-'''
+```python
 cd docker
 docker build -t iebe-music .
-'''
+```
 
 Then, create the folder you want your results to be saved in, an do
-'''
+```python
 apptainer build iebe-music.sif docker-daemon:iebe-music:latest
 cp -r  caminho/da/pasta/iEBE-MUSIC/shared_seeds
 cp  caminho/da/pasta/iEBE-MUSIC/config/parameter_file.py 
 python3 caminho/da/pasta/iEBE-MUSIC/Cluster_supports/HTCondor/generate_submission_script_final.py     -param parameters_file.py     -singularity ./iebe-music.sif     -n 1     -n_urqmd 1     -n_hydro 1     -nth 1     -jobid id
 condor_submit singularity_submit
-'''
+```
