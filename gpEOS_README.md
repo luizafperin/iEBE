@@ -19,18 +19,22 @@ To use the GP EoS, the following parameters must be defined in the configuration
 
 For example, inside your parameters.py file, add:
 
+```python
 'EOS_to_use' = 24,
 'EOS_gp_l' = 400,
 'EOS_gp_sigma' = 15,
 'EOS_gp_type' = "hrg",
 'EOS_gp_sample' = "s0",
 'gp_type' = "constrained",
-'T_sw' = 136.
+'T_sw' = 136
+```
 
 The GP files are available at "https://github.com/luizafperin/MUSIC-EOS-data.git". Make sure that the GP EoS parameters choosen in parameter_file.py correspond to files available in the MUSIC-EOS-data repository.
 
 To generate a local job, run:
-'''python3 generate_jobs.py -w test_job -par config/parameter_file.py'''
+```python
+python3 generate_jobs.py -w test_job -par config/parameter_file.py
+```
 
 The generated job will be located in:
 
@@ -38,10 +42,11 @@ test_job/
 └── event_0/
 
 Enter the event directory and submit the job:
-'''
+
+```python
 cd test_job/event_0
 bash submit_job.script
-'''
+```
 
 ## Running on HTcondor
 First, copy the iEBE repository:
